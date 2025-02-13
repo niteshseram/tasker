@@ -88,6 +88,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     if (!isInitialized) {
       return;
     }
+    if (state.tasks.length === 0) {
+      localStorage.removeItem('taskState');
+      return;
+    }
     localStorage.setItem('taskState', JSON.stringify({ tasks: state.tasks }));
   }, [state.tasks, isInitialized]);
 

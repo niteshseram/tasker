@@ -11,7 +11,7 @@ function App() {
   return (
     <div className="flex flex-col h-screen">
       <Navbar />
-      <div className="container mx-auto flex flex-col gap-4 flex-1 overflow-y-auto py-4">
+      <div className="container sm:px-0 px-4 mx-auto flex flex-col gap-4 flex-1 overflow-y-auto py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">Tasks</h1>
           <div>

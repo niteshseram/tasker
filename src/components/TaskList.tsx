@@ -132,12 +132,11 @@ export default function TaskList() {
     changePageSize,
   } = usePagination(sortedTasks, 10);
 
-  console.log(tasks.length, pageSize);
   const filterCount = filterPriorities.length + filterStatuses.length;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Input
           className="max-w-md"
           placeholder="Search task"

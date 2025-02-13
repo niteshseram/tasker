@@ -1,10 +1,22 @@
 import { useState, useCallback } from 'react';
+import {
+  TiArrowSortedDown,
+  TiArrowSortedUp,
+  TiArrowUnsorted,
+} from 'react-icons/ti';
+import { RiFilterFill, RiFilterLine } from 'react-icons/ri';
+
 import { PRIORITY, STATUS } from '../constants';
 import type { Task } from '../types';
 import TaskActions from './TaskActions';
 import { TaskModal } from './TaskModal';
 import { useTaskContext } from '@/context/TaskContext';
+import { Input } from '@/components/ui/input';
+import { useSortedTasks } from '@/components/hooks/useSortedTasks';
 import { DeleteTaskAlertDialog } from './DeleteTaskAlertDialog';
+import { useTaskFilters } from './hooks/ustFilterTasks';
+import { Button } from './ui/button';
+import { FilterPopover } from './FilterPopover';
 
 interface TaskRowProps {
   task: Task;
@@ -27,6 +39,33 @@ function TaskRow({ task, onEdit, onDelete }: TaskRowProps) {
   );
 }
 
+function TableHeader({
+  label,
+  isSorted,
+  sortDirection,
+  onClick,
+}: {
+  label: string;
+  isSorted: boolean;
+  sortDirection: 'asc' | 'desc';
+  onClick: () => void;
+}) {
+  return (
+    <button className="flex gap-1.5 items-center" onClick={onClick}>
+      {label}
+      {isSorted ? (
+        sortDirection === 'asc' ? (
+          <TiArrowSortedUp className="text-xs" />
+        ) : (
+          <TiArrowSortedDown className="text-xs" />
+        )
+      ) : (
+        <TiArrowUnsorted className="text-xs" />
+      )}
+    </button>
+  );
+}
+
 export default function TaskList() {
   const {
     state: { tasks },
@@ -35,6 +74,10 @@ export default function TaskList() {
 
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+  const [sort, setSort] = useState<{
+    field: keyof Task | null;
+    direction: 'asc' | 'desc';
+  }>({ field: null, direction: 'asc' });
 
   const handleEdit = useCallback((task: Task) => {
     setEditingTask(task);
@@ -59,8 +102,41 @@ export default function TaskList() {
     setDeletingTask(null);
   }, []);
 
+  const {
+    filterTitle,
+    setFilterTitle,
+    filterPriorities,
+    setFilterPriorities,
+    filterStatuses,
+    setFilterStatuses,
+    filteredTasks,
+  } = useTaskFilters(tasks);
+
+  const sortedTasks = useSortedTasks(filteredTasks, sort);
+
+  const filterCount = filterPriorities.length + filterStatuses.length;
+
   return (
-    <>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <Input
+          className="max-w-md"
+          placeholder="Search task"
+          value={filterTitle}
+          onChange={e => setFilterTitle(e.target.value)}
+        />
+        <FilterPopover
+          trigger={
+            <Button variant="secondary">
+              {filterCount > 0 ? <RiFilterFill /> : <RiFilterLine />}
+            </Button>
+          }
+          filterPriorities={filterPriorities}
+          setFilterPriorities={setFilterPriorities}
+          filterStatuses={filterStatuses}
+          setFilterStatuses={setFilterStatuses}
+        />
+      </div>
       <div className="overflow-x-auto sm:rounded-lg">
         <table className="w-full text-sm text-left rtl:text-right text-gray-400">
           <colgroup>
@@ -72,13 +148,52 @@ export default function TaskList() {
           <thead className="text-gray-700 bg-gray-200 sticky top-0 z-10">
             <tr>
               <th scope="col" className="px-6 py-3">
-                Title
+                <TableHeader
+                  label="Title"
+                  isSorted={sort.field === 'title'}
+                  sortDirection={sort.direction}
+                  onClick={() =>
+                    setSort({
+                      field: 'title',
+                      direction:
+                        sort.field === 'title' && sort.direction === 'asc'
+                          ? 'desc'
+                          : 'asc',
+                    })
+                  }
+                />
               </th>
               <th scope="col" className="px-6 py-3">
-                Status
+                <TableHeader
+                  label="Status"
+                  isSorted={sort.field === 'status'}
+                  sortDirection={sort.direction}
+                  onClick={() =>
+                    setSort({
+                      field: 'status',
+                      direction:
+                        sort.field === 'status' && sort.direction === 'asc'
+                          ? 'desc'
+                          : 'asc',
+                    })
+                  }
+                />
               </th>
               <th scope="col" className="px-6 py-3">
-                Priority
+                <TableHeader
+                  label="Priority"
+                  isSorted={sort.field === 'priority'}
+                  sortDirection={sort.direction}
+                  onClick={() =>
+                    setSort({
+                      field: 'priority',
+                      direction:
+                        sort.field === 'priority' && sort.direction === 'asc'
+                          ? 'desc'
+                          : 'asc',
+                    })
+                  }
+                />
               </th>
               <th scope="col" className="px-6 py-3">
                 <span className="sr-only">Action</span>
@@ -86,14 +201,22 @@ export default function TaskList() {
             </tr>
           </thead>
           <tbody>
-            {tasks.map(task => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
+            {sortedTasks.length > 0 ? (
+              sortedTasks.map(task => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))
+            ) : (
+              <tr>
+                <td className="px-6 py-4 text-center" colSpan={4}>
+                  No tasks found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -108,6 +231,6 @@ export default function TaskList() {
           onConfirm={handleConfirmDelete}
         />
       )}
-    </>
+    </div>
   );
 }

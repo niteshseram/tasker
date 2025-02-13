@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -16,5 +18,11 @@ body {
   padding: 0px;
   box-sizing: border-box;
   min-height: 100vh;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
 }
 

@@ -1,7 +1,14 @@
-import { createContext, useContext, useReducer } from 'react';
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useState,
+} from 'react';
 import type { Task } from '@/types';
 
 type Action =
+  | { type: 'LOAD_TASKS'; payload: Task[] }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: { id: string; task: Partial<Task> } }
   | { type: 'DELETE_TASK'; payload: string };
@@ -18,6 +25,12 @@ function taskReducer(state: State, action: Action): State {
   let newState: State;
 
   switch (action.type) {
+    case 'LOAD_TASKS':
+      newState = {
+        ...state,
+        tasks: action.payload,
+      };
+      break;
     case 'ADD_TASK':
       newState = {
         ...state,
@@ -62,6 +75,23 @@ const TaskContext = createContext<
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(taskReducer, initialState);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    const savedState = localStorage.getItem('taskState');
+    if (savedState) {
+      const { tasks } = JSON.parse(savedState);
+      dispatch({ type: 'LOAD_TASKS', payload: tasks });
+    }
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialized) {
+      return;
+    }
+    localStorage.setItem('taskState', JSON.stringify({ tasks: state.tasks }));
+  }, [state.tasks, isInitialized]);
 
   return (
     <TaskContext.Provider value={{ state, dispatch }}>

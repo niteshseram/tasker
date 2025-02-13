@@ -21,7 +21,7 @@ export default function PageSizeSelector({ changePageSize, pageSize }: Props) {
           <SelectValue placeholder="Select page size" />
         </SelectTrigger>
         <SelectContent>
-          {[3, 10, 20, 30, 40].map(pageSize => (
+          {[10, 20, 30, 40].map(pageSize => (
             <SelectItem value={pageSize.toString()} key={pageSize}>
               {pageSize} per page
             </SelectItem>

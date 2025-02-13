@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { useSortedTasks } from '@/components/hooks/useSortedTasks';
 import { DeleteTaskAlertDialog } from './DeleteTaskAlertDialog';
 import { useTaskFilters } from './hooks/ustFilterTasks';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { FilterPopover } from './FilterPopover';
 import { usePagination } from './hooks/usePagination';
 import PageSizeSelector from './PageSizeSelector';
@@ -130,8 +130,7 @@ export default function TaskList() {
     nextPage,
     prevPage,
     changePageSize,
-  } = usePagination(sortedTasks, 3);
-  console.log(paginatedTasks);
+  } = usePagination(sortedTasks, 10);
 
   console.log(tasks.length, pageSize);
   const filterCount = filterPriorities.length + filterStatuses.length;
@@ -145,17 +144,23 @@ export default function TaskList() {
           value={filterTitle}
           onChange={e => setFilterTitle(e.target.value)}
         />
-        <FilterPopover
-          trigger={
-            <Button variant="outline">
-              {filterCount > 0 ? <RiFilterFill /> : <RiFilterLine />}
-            </Button>
-          }
-          filterPriorities={filterPriorities}
-          setFilterPriorities={setFilterPriorities}
-          filterStatuses={filterStatuses}
-          setFilterStatuses={setFilterStatuses}
-        />
+        <div className="flex items-center gap-2">
+          <PageSizeSelector
+            changePageSize={changePageSize}
+            pageSize={pageSize}
+          />
+          <FilterPopover
+            trigger={
+              <Button variant="outline">
+                {filterCount > 0 ? <RiFilterFill /> : <RiFilterLine />}
+              </Button>
+            }
+            filterPriorities={filterPriorities}
+            setFilterPriorities={setFilterPriorities}
+            filterStatuses={filterStatuses}
+            setFilterStatuses={setFilterStatuses}
+          />
+        </div>
       </div>
       <div className="overflow-x-auto sm:rounded-lg">
         <table className="w-full text-sm text-left rtl:text-right text-gray-400">
@@ -241,34 +246,31 @@ export default function TaskList() {
         </table>
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
-        {tasks.length > pageSize ? (
-          <div className="flex items-center gap-1.5">
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full size-10 flex items-center justify-center"
-              onClick={prevPage}
-              disabled={currentPage === 1}>
-              <RiArrowLeftSLine className="size-8 shrink-0" />
-            </Button>
-            <span className="mx-2">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-full size-10 flex items-center justify-center"
-              onClick={nextPage}
-              disabled={currentPage === totalPages}>
-              <RiArrowRightSLine className="size-8 shrink-0" />
-            </Button>
-          </div>
-        ) : (
-          <div />
-        )}
-        <PageSizeSelector changePageSize={changePageSize} pageSize={pageSize} />
-      </div>
+      {tasks.length > pageSize ? (
+        <div className="flex items-center gap-1.5">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full size-10 flex items-center justify-center"
+            onClick={prevPage}
+            disabled={currentPage === 1}>
+            <RiArrowLeftSLine className="size-8 shrink-0" />
+          </Button>
+          <span className="mx-2">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-full size-10 flex items-center justify-center"
+            onClick={nextPage}
+            disabled={currentPage === totalPages}>
+            <RiArrowRightSLine className="size-8 shrink-0" />
+          </Button>
+        </div>
+      ) : (
+        <div />
+      )}
 
       {editingTask && (
         <TaskModal open={true} task={editingTask} onClose={handleCloseModal} />

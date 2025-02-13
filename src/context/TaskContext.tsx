@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import type { Task } from '@/types';
+import { mockData } from '@/data';
 
 type Action =
   | { type: 'LOAD_TASKS'; payload: Task[] }
@@ -18,7 +19,7 @@ interface State {
 }
 
 const initialState: State = {
-  tasks: [],
+  tasks: mockData,
 };
 
 function taskReducer(state: State, action: Action): State {

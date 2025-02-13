@@ -11,8 +11,8 @@ import { mockData } from '@/data';
 type Action =
   | { type: 'LOAD_TASKS'; payload: Task[] }
   | { type: 'ADD_TASK'; payload: Task }
-  | { type: 'UPDATE_TASK'; payload: { id: string; task: Partial<Task> } }
-  | { type: 'DELETE_TASK'; payload: string };
+  | { type: 'UPDATE_TASK'; payload: { id: number; task: Partial<Task> } }
+  | { type: 'DELETE_TASK'; payload: number };
 
 interface State {
   tasks: Task[];
@@ -35,10 +35,7 @@ function taskReducer(state: State, action: Action): State {
     case 'ADD_TASK':
       newState = {
         ...state,
-        tasks: [
-          ...state.tasks,
-          { ...action.payload, id: Date.now().toString() },
-        ],
+        tasks: [{ ...action.payload, id: Date.now() }, ...state.tasks],
       };
       break;
     case 'UPDATE_TASK':

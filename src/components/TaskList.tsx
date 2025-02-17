@@ -10,6 +10,7 @@ import {
   RiFilterFill,
   RiFilterLine,
 } from 'react-icons/ri';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { PRIORITY, STATUS } from '@/constants';
 import type { CustomField, Task } from '@/types';
@@ -34,7 +35,13 @@ interface TaskRowProps {
 
 function TaskRow({ task, customFields, onEdit, onDelete }: TaskRowProps) {
   return (
-    <tr className="border-b border-gray-200 text-black">
+    <motion.tr
+      layout
+      className="border-b border-gray-200 text-black"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: 'easeIn' }}>
       <th scope="row" className="px-6 py-4 font-medium whitespace-nowrap">
         {task.title}
       </th>
@@ -42,15 +49,15 @@ function TaskRow({ task, customFields, onEdit, onDelete }: TaskRowProps) {
       <td className="px-6 py-4">{PRIORITY[task.priority]}</td>
       {customFields.map(field => (
         <td className="px-6 py-4">
-          {task[field.name as keyof Task] === ''
+          {task[field.name] === ''
             ? '-'
-            : String(task[field.name as keyof Task])}
+            : String(task[field.name])}
         </td>
       ))}
       <td className="px-6 py-4 text-right">
         <TaskActions task={task} onDelete={onDelete} onEdit={onEdit} />
       </td>
-    </tr>
+    </motion.tr>
   );
 }
 
@@ -261,23 +268,25 @@ export default function TaskList() {
             </tr>
           </thead>
           <tbody>
-            {paginatedTasks.length > 0 ? (
-              paginatedTasks.map(task => (
-                <TaskRow
-                  key={task.id}
-                  task={task}
-                  customFields={customFields}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))
-            ) : (
-              <tr>
-                <td className="px-6 py-4 text-center" colSpan={4}>
-                  No tasks found
-                </td>
-              </tr>
-            )}
+            <AnimatePresence>
+              {paginatedTasks.length > 0 ? (
+                paginatedTasks.map(task => (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    customFields={customFields}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                ))
+              ) : (
+                <tr>
+                  <td className="px-6 py-4 text-center" colSpan={4}>
+                    No tasks found
+                  </td>
+                </tr>
+              )}
+            </AnimatePresence>
           </tbody>
         </table>
       </div>

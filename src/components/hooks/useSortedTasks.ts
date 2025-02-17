@@ -18,13 +18,7 @@ export function useSortedTasks(
 
       // Use custom ordering for priority and status
       if (field === 'priority') {
-        const priorityOrder: Priority[] = [
-          'none',
-          'low',
-          'medium',
-          'high',
-          'urgent',
-        ];
+        const priorityOrder: Priority[] = ['low', 'medium', 'high'];
         aValue = priorityOrder.indexOf(a[field]);
         bValue = priorityOrder.indexOf(b[field]);
       } else if (field === 'status') {

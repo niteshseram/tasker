@@ -1,6 +1,6 @@
 export type Status = 'not_started' | 'in_progress' | 'completed';
 
-export type Priority = 'none' | 'low' | 'medium' | 'high' | 'urgent';
+export type Priority = 'low' | 'medium' | 'high';
 
 export type Task = Readonly<{
   id: number;
@@ -16,3 +16,7 @@ export type CustomField = Readonly<{
   name: string;
   type: CustomFieldType;
 }>;
+
+export type View = 'board' | 'list';
+
+export type CustomFieldFilter = Record<string, string | number | boolean>;

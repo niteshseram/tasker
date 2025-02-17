@@ -30,11 +30,18 @@ type Action =
   | {
       type: 'BULK_UPDATE_TASKS';
       payload: { updates: Record<number, Partial<Task>> };
-    };
+    }
+  | { type: 'UPDATE_KANBAN_ORDER'; payload: Record<string, number[]> };
+
+// KanbanOrder represents the order of tasks per status column
+interface KanbanOrder {
+  [priority: string]: number[]; // Array of task IDs in display order
+}
 
 interface State {
   tasks: Task[];
   customFields: CustomField[];
+  kanbanOrder: KanbanOrder;
 }
 
 interface HistoryState {
@@ -48,6 +55,7 @@ const MAX_HISTORY_LENGTH = 50; // Limit history to last 50 operations
 const initialState: State = {
   tasks: mockData,
   customFields: [],
+  kanbanOrder: {}, // Initialize empty kanban order
 };
 
 const initialHistoryState: HistoryState = {
@@ -195,6 +203,17 @@ function createInverseAction(
       };
     }
 
+    case 'UPDATE_KANBAN_ORDER': {
+      return {
+        actionType: 'UPDATE_KANBAN_ORDER',
+        payload: action.payload,
+        inverse: () => ({
+          type: 'UPDATE_KANBAN_ORDER',
+          payload: state.kanbanOrder,
+        }),
+      };
+    }
+
     default:
       return null;
   }
@@ -271,6 +290,18 @@ function taskReducer(state: HistoryState, action: Action): HistoryState {
   };
 }
 
+// Initialize kanban order from existing tasks
+function initializeKanbanOrder(tasks: Task[]): KanbanOrder {
+  const order: KanbanOrder = {};
+  tasks.forEach(task => {
+    if (!order[task.status]) {
+      order[task.status] = [];
+    }
+    order[task.status].push(task.id);
+  });
+  return order;
+}
+
 // Helper function to apply an action to state without history management
 function applyAction(state: State, action: Action): State {
   switch (action.type) {
@@ -283,21 +314,49 @@ function applyAction(state: State, action: Action): State {
         id: action.payload.id != null ? action.payload.id : Date.now(),
       };
 
+      // Update the kanban order to include the new task
+      const updatedKanbanOrder = { ...state.kanbanOrder };
+      if (!updatedKanbanOrder[task.status]) {
+        updatedKanbanOrder[task.status] = [];
+      }
+      updatedKanbanOrder[task.status].unshift(task.id);
+
       return {
         ...state,
         tasks: [task, ...state.tasks],
+        kanbanOrder: updatedKanbanOrder,
       };
     }
 
-    case 'UPDATE_TASK':
+    case 'UPDATE_TASK': {
+      const { id, task: updatedFields } = action.payload;
+      const taskIndex = state.tasks.findIndex(t => t.id === id);
+      if (taskIndex === -1) return state;
+
+      const oldTask = state.tasks[taskIndex];
+      const newTask = { ...oldTask, ...updatedFields };
+
+      // Handle status change by updating kanban order
+      const updatedKanbanOrder = { ...state.kanbanOrder };
+      if (updatedFields.status && oldTask.status !== updatedFields.status) {
+        // Remove from old status
+        updatedKanbanOrder[oldTask.status] = (
+          updatedKanbanOrder[oldTask.status] || []
+        ).filter(taskId => taskId !== id);
+
+        // Add to new status
+        if (!updatedKanbanOrder[updatedFields.status]) {
+          updatedKanbanOrder[updatedFields.status] = [];
+        }
+        updatedKanbanOrder[updatedFields.status].push(id);
+      }
+
       return {
         ...state,
-        tasks: state.tasks.map(task =>
-          task.id === action.payload.id
-            ? { ...task, ...action.payload.task }
-            : task
-        ),
+        tasks: state.tasks.map(task => (task.id === id ? newTask : task)),
+        kanbanOrder: updatedKanbanOrder,
       };
+    }
 
     case 'BULK_UPDATE_TASKS': {
       const { updates } = action.payload;
@@ -308,26 +367,91 @@ function applyAction(state: State, action: Action): State {
         }
         return task;
       });
-      return { ...state, tasks: updatedTasks };
+
+      // Update kanban order for any status changes
+      const updatedKanbanOrder = { ...state.kanbanOrder };
+      ids.forEach(id => {
+        const oldTask = state.tasks.find(t => t.id === id);
+        const newStatus = updates[id]?.status;
+
+        if (oldTask && newStatus && oldTask.status !== newStatus) {
+          // Remove from old status
+          updatedKanbanOrder[oldTask.status] = (
+            updatedKanbanOrder[oldTask.status] || []
+          ).filter(taskId => taskId !== id);
+
+          // Add to new status
+          if (!updatedKanbanOrder[newStatus]) {
+            updatedKanbanOrder[newStatus] = [];
+          }
+          updatedKanbanOrder[newStatus].push(id);
+        }
+      });
+
+      return {
+        ...state,
+        tasks: updatedTasks,
+        kanbanOrder: updatedKanbanOrder,
+      };
     }
 
-    case 'DELETE_TASK':
-      return {
-        ...state,
-        tasks: state.tasks.filter(task => task.id !== action.payload),
-      };
+    case 'DELETE_TASK': {
+      const deletedTaskId = action.payload;
+      const taskToDelete = state.tasks.find(task => task.id === deletedTaskId);
 
-    case 'BULK_DELETE_TASKS':
-      return {
-        ...state,
-        tasks: state.tasks.filter(task => !action.payload.includes(task.id)),
-      };
+      if (!taskToDelete) return state;
 
-    case 'BULK_RESTORE_TASKS':
+      // Update kanban order
+      const updatedKanbanOrder = { ...state.kanbanOrder };
+      Object.keys(updatedKanbanOrder).forEach(status => {
+        updatedKanbanOrder[status] = updatedKanbanOrder[status].filter(
+          id => id !== deletedTaskId
+        );
+      });
+
       return {
         ...state,
-        tasks: [...action.payload, ...state.tasks],
+        tasks: state.tasks.filter(task => task.id !== deletedTaskId),
+        kanbanOrder: updatedKanbanOrder,
       };
+    }
+
+    case 'BULK_DELETE_TASKS': {
+      const taskIdsToDelete = action.payload;
+
+      // Update kanban order
+      const updatedKanbanOrder = { ...state.kanbanOrder };
+      Object.keys(updatedKanbanOrder).forEach(status => {
+        updatedKanbanOrder[status] = updatedKanbanOrder[status].filter(
+          id => !taskIdsToDelete.includes(id)
+        );
+      });
+
+      return {
+        ...state,
+        tasks: state.tasks.filter(task => !taskIdsToDelete.includes(task.id)),
+        kanbanOrder: updatedKanbanOrder,
+      };
+    }
+
+    case 'BULK_RESTORE_TASKS': {
+      const restoredTasks = action.payload;
+
+      // Update kanban order
+      const updatedKanbanOrder = { ...state.kanbanOrder };
+      restoredTasks.forEach(task => {
+        if (!updatedKanbanOrder[task.status]) {
+          updatedKanbanOrder[task.status] = [];
+        }
+        updatedKanbanOrder[task.status].push(task.id);
+      });
+
+      return {
+        ...state,
+        tasks: [...restoredTasks, ...state.tasks],
+        kanbanOrder: updatedKanbanOrder,
+      };
+    }
 
     case 'ADD_CUSTOM_FIELD': {
       // Create new tasks with the custom field initialized
@@ -347,6 +471,7 @@ function applyAction(state: State, action: Action): State {
       });
 
       return {
+        ...state,
         tasks: updatedTasks,
         customFields: [action.payload, ...state.customFields],
       };
@@ -370,6 +495,13 @@ function applyAction(state: State, action: Action): State {
           field => field.name !== action.payload
         ),
         tasks: updatedTasks,
+      };
+    }
+
+    case 'UPDATE_KANBAN_ORDER': {
+      return {
+        ...state,
+        kanbanOrder: action.payload,
       };
     }
 
@@ -408,10 +540,25 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const savedState = localStorage.getItem('taskState');
     if (savedState) {
-      const { tasks, customFields } = JSON.parse(savedState);
+      try {
+        const { tasks, customFields, kanbanOrder } = JSON.parse(savedState);
+        dispatch({
+          type: 'LOAD_STATE',
+          payload: {
+            tasks: tasks || [],
+            customFields: customFields || [],
+            kanbanOrder: kanbanOrder || initializeKanbanOrder(tasks || []),
+          },
+        });
+      } catch (error) {
+        console.error('Error loading task state:', error);
+      }
+    } else {
+      // Initialize kanban order if no saved state exists
+      const initialKanbanOrder = initializeKanbanOrder(initialState.tasks);
       dispatch({
-        type: 'LOAD_STATE',
-        payload: { tasks: tasks || [], customFields: customFields || [] },
+        type: 'UPDATE_KANBAN_ORDER',
+        payload: initialKanbanOrder,
       });
     }
     setIsInitialized(true);
@@ -430,6 +577,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       JSON.stringify({
         tasks: historyState.present.tasks,
         customFields: historyState.present.customFields,
+        kanbanOrder: historyState.present.kanbanOrder,
       })
     );
   }, [historyState.present, isInitialized]);

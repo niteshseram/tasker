@@ -46,19 +46,13 @@ export default function TaskModal({
 }: Props) {
   const { state, dispatch } = useTaskContext();
   const statusOptions: Status[] = ['not_started', 'in_progress', 'completed'];
-  const priorityOptions: Priority[] = [
-    'none',
-    'low',
-    'medium',
-    'high',
-    'urgent',
-  ];
+  const priorityOptions: Priority[] = ['low', 'medium', 'high'];
 
   // Create default values for all fields, including custom fields
   function createDefaultValues(): TaskFormData {
     const defaultValues: TaskFormData = {
       title: task?.title || '',
-      priority: task?.priority || 'none',
+      priority: task?.priority || 'low',
       status: task?.status || 'not_started',
       ...(task?.id !== undefined && { id: task.id }),
     };

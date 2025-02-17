@@ -5,11 +5,9 @@ import {
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { Priority, Status, CustomField } from '@/types';
+import { Priority, Status, CustomField, CustomFieldFilter } from '@/types';
 import { PRIORITY, STATUS } from '@/constants';
 import { Button } from './ui/button';
-
-type CustomFieldFilter = Record<string, string | number | boolean>;
 
 type Props = Readonly<{
   trigger: React.ReactNode;
@@ -20,6 +18,7 @@ type Props = Readonly<{
   customFieldFilters: CustomFieldFilter;
   setCustomFieldFilters: (filters: CustomFieldFilter) => void;
   customFields: CustomField[];
+  hidePriorityFilter?: boolean;
 }>;
 
 export function FilterPopover({
@@ -31,15 +30,10 @@ export function FilterPopover({
   customFieldFilters,
   setCustomFieldFilters,
   customFields,
+  hidePriorityFilter,
 }: Props) {
   const statusOptions: Status[] = ['not_started', 'in_progress', 'completed'];
-  const priorityOptions: Priority[] = [
-    'none',
-    'low',
-    'medium',
-    'high',
-    'urgent',
-  ];
+  const priorityOptions: Priority[] = ['low', 'medium', 'high'];
 
   function handleFilterStatusChange(value: Status, checked: boolean) {
     if (checked) {
@@ -74,7 +68,7 @@ export function FilterPopover({
               Clear
             </Button>
           </header>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 overflow-y-auto max-h-[60vh]">
             {/* Status Filters */}
             <fieldset>
               <legend className="mb-2 font-medium">Status</legend>
@@ -94,25 +88,30 @@ export function FilterPopover({
               </div>
             </fieldset>
             {/* Priority Filters */}
-            <fieldset>
-              <legend className="mb-2 font-medium">Priority</legend>
-              <div className="flex flex-wrap gap-y-1.5 gap-x-3">
-                {priorityOptions.map(priority => (
-                  <div key={priority} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`priority-${priority}`}
-                      checked={filterPriorities.includes(priority)}
-                      onCheckedChange={checked =>
-                        handleFilterPriorityChange(priority, checked as boolean)
-                      }
-                    />
-                    <label htmlFor={`priority-${priority}`}>
-                      {PRIORITY[priority]}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </fieldset>
+            {!hidePriorityFilter && (
+              <fieldset>
+                <legend className="mb-2 font-medium">Priority</legend>
+                <div className="flex flex-wrap gap-y-1.5 gap-x-3">
+                  {priorityOptions.map(priority => (
+                    <div key={priority} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`priority-${priority}`}
+                        checked={filterPriorities.includes(priority)}
+                        onCheckedChange={checked =>
+                          handleFilterPriorityChange(
+                            priority,
+                            checked as boolean
+                          )
+                        }
+                      />
+                      <label htmlFor={`priority-${priority}`}>
+                        {PRIORITY[priority]}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </fieldset>
+            )}
 
             {/* Custom Field Filters */}
             {customFields.length > 0 && (

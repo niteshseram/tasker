@@ -132,12 +132,17 @@ export function FilterPopover({
                             ? String(customFieldFilters[field.name])
                             : ''
                         }
-                        onChange={e =>
-                          setCustomFieldFilters({
+                        onChange={e => {
+                          const value = e.target.value;
+                          const filters = {
                             ...customFieldFilters,
-                            [field.name]: e.target.value,
-                          })
-                        }
+                            [field.name]: value,
+                          };
+                          if (!value) {
+                            delete filters[field.name];
+                          }
+                          setCustomFieldFilters(filters);
+                        }}
                       />
                     )}
                     {field.type === 'checkbox' && (
@@ -145,12 +150,16 @@ export function FilterPopover({
                         <Checkbox
                           id={`custom-${field.name}`}
                           checked={!!customFieldFilters[field.name]}
-                          onCheckedChange={checked =>
-                            setCustomFieldFilters({
+                          onCheckedChange={checked => {
+                            const filters = {
                               ...customFieldFilters,
                               [field.name]: checked,
-                            })
-                          }
+                            };
+                            if (!checked) {
+                              delete filters[field.name];
+                            }
+                            setCustomFieldFilters(filters);
+                          }}
                         />
                         <label htmlFor={`custom-${field.name}`}>
                           {field.name}

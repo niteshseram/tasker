@@ -15,10 +15,19 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { Priority, Status, Task } from '@/types';
 import { PRIORITY, STATUS } from '@/constants';
 import { useTaskContext } from '@/context/TaskContext';
-import { Checkbox } from './ui/checkbox';
+
+// Create a type that extends Task to allow for dynamic properties
+type TaskFormData = {
+  title: string;
+  priority: Priority;
+  status: Status;
+  id?: number;
+  [key: string]: string | number | boolean | undefined;
+};
 
 type Props = Readonly<{
   open: boolean;
@@ -37,17 +46,37 @@ export function TaskModal({ open, onClose, task }: Props) {
     'urgent',
   ];
 
+  // Create default values for all fields, including custom fields
+  function createDefaultValues(): TaskFormData {
+    const defaultValues: TaskFormData = {
+      title: task?.title || '',
+      priority: task?.priority || 'none',
+      status: task?.status || 'not_started',
+      ...(task?.id !== undefined && { id: task.id }),
+    };
+
+    // Copy existing custom field values for editing, or initialize with defaults for new tasks
+    state.customFields.forEach(field => {
+      // Initialize with appropriate defaults based on field type
+      if (field.type === 'checkbox') {
+        defaultValues[field.name] = task?.[field.name] || false;
+      } else if (field.type === 'number') {
+        defaultValues[field.name] = task?.[field.name] || 0;
+      } else {
+        defaultValues[field.name] = task?.[field.name] || '';
+      }
+    });
+
+    return defaultValues;
+  }
+
   const {
     register,
     control,
     handleSubmit,
     formState: { errors },
   } = useForm<Task>({
-    defaultValues: task || {
-      title: '',
-      priority: 'none',
-      status: 'not_started',
-    },
+    defaultValues: createDefaultValues(),
   });
 
   const onSubmit = (data: Task) => {
@@ -152,7 +181,7 @@ export function TaskModal({ open, onClose, task }: Props) {
                 {field.type === 'number' && (
                   <Input
                     type="number"
-                    {...register(field.name, { valueAsNumber: true })}
+                    {...register(field.name)}
                     placeholder={field.name}
                   />
                 )}

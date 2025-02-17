@@ -5,6 +5,8 @@ import {
   TiArrowUnsorted,
 } from 'react-icons/ti';
 import {
+  RiArrowGoBackFill,
+  RiArrowGoForwardFill,
   RiArrowLeftSLine,
   RiArrowRightSLine,
   RiFilterFill,
@@ -49,9 +51,7 @@ function TaskRow({ task, customFields, onEdit, onDelete }: TaskRowProps) {
       <td className="px-6 py-4">{PRIORITY[task.priority]}</td>
       {customFields.map(field => (
         <td className="px-6 py-4">
-          {task[field.name] === ''
-            ? '-'
-            : String(task[field.name])}
+          {task[field.name] === '' ? '-' : String(task[field.name])}
         </td>
       ))}
       <td className="px-6 py-4 text-right">
@@ -91,6 +91,10 @@ function TableHeader({
 export default function TaskList() {
   const {
     state: { tasks, customFields },
+    canUndo,
+    canRedo,
+    undo,
+    redo,
     dispatch,
   } = useTaskContext();
 
@@ -149,7 +153,10 @@ export default function TaskList() {
     changePageSize,
   } = usePagination(sortedTasks, 10);
 
-  const filterCount = filterPriorities.length + filterStatuses.length;
+  const filterCount =
+    filterPriorities.length +
+    filterStatuses.length +
+    Object.keys(customFieldFilters).length;
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -161,13 +168,23 @@ export default function TaskList() {
           onChange={e => setFilterTitle(e.target.value)}
         />
         <div className="flex items-center gap-2">
-          <PageSizeSelector
-            changePageSize={changePageSize}
-            pageSize={pageSize}
-          />
+          <Button
+            variant="secondary"
+            aria-label="Undo button"
+            disabled={!canUndo}
+            onClick={undo}>
+            <RiArrowGoBackFill />
+          </Button>
+          <Button
+            variant="secondary"
+            aria-label="Redo button"
+            disabled={!canRedo}
+            onClick={redo}>
+            <RiArrowGoForwardFill />
+          </Button>
           <FilterPopover
             trigger={
-              <Button variant="outline">
+              <Button variant="outline" aria-label="Filter button">
                 {filterCount > 0 ? <RiFilterFill /> : <RiFilterLine />}
               </Button>
             }
@@ -291,31 +308,34 @@ export default function TaskList() {
         </table>
       </div>
 
-      {sortedTasks.length > pageSize ? (
-        <div className="flex items-center gap-1.5 sticky bottom-0 pt-16">
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full size-10 flex items-center justify-center"
-            onClick={prevPage}
-            disabled={currentPage === 1}>
-            <RiArrowLeftSLine className="size-8 shrink-0" />
-          </Button>
-          <span className="mx-2">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            className="rounded-full size-10 flex items-center justify-center"
-            onClick={nextPage}
-            disabled={currentPage === totalPages}>
-            <RiArrowRightSLine className="size-8 shrink-0" />
-          </Button>
-        </div>
-      ) : (
-        <div />
-      )}
+      <div className="flex items-center justify-between flex-wrap gap-1.5 sticky bottom-0 pt-16">
+        {sortedTasks.length > pageSize ? (
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full size-10 flex items-center justify-center"
+              onClick={prevPage}
+              disabled={currentPage === 1}>
+              <RiArrowLeftSLine className="size-8 shrink-0" />
+            </Button>
+            <span className="mx-2">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full size-10 flex items-center justify-center"
+              onClick={nextPage}
+              disabled={currentPage === totalPages}>
+              <RiArrowRightSLine className="size-8 shrink-0" />
+            </Button>
+          </div>
+        ) : (
+          <div />
+        )}
+        <PageSizeSelector changePageSize={changePageSize} pageSize={pageSize} />
+      </div>
 
       {editingTask && (
         <TaskModal open={true} task={editingTask} onClose={handleCloseModal} />

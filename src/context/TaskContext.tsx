@@ -5,32 +5,36 @@ import {
   useEffect,
   useState,
 } from 'react';
-import type { Task } from '@/types';
+import type { CustomField, Task } from '@/types';
 import { mockData } from '@/data';
 
 type Action =
-  | { type: 'LOAD_TASKS'; payload: Task[] }
+  | {
+      type: 'LOAD_STATE';
+      payload: State;
+    }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: { id: number; task: Partial<Task> } }
-  | { type: 'DELETE_TASK'; payload: number };
+  | { type: 'DELETE_TASK'; payload: number }
+  | { type: 'ADD_CUSTOM_FIELD'; payload: CustomField }
+  | { type: 'REMOVE_CUSTOM_FIELD'; payload: string };
 
 interface State {
   tasks: Task[];
+  customFields: CustomField[];
 }
 
 const initialState: State = {
   tasks: mockData,
+  customFields: [],
 };
 
 function taskReducer(state: State, action: Action): State {
   let newState: State;
 
   switch (action.type) {
-    case 'LOAD_TASKS':
-      newState = {
-        ...state,
-        tasks: action.payload,
-      };
+    case 'LOAD_STATE':
+      newState = action.payload;
       break;
     case 'ADD_TASK':
       newState = {
@@ -52,6 +56,34 @@ function taskReducer(state: State, action: Action): State {
       newState = {
         ...state,
         tasks: state.tasks.filter(task => task.id !== action.payload),
+      };
+      break;
+    case 'ADD_CUSTOM_FIELD':
+      newState = {
+        tasks: state.tasks.map(task => {
+          const cloneTask = { ...task };
+          cloneTask[action.payload.name] =
+            action.payload.type === 'checkbox'
+              ? false
+              : action.payload.type === 'number'
+              ? 0
+              : '';
+          return cloneTask;
+        }),
+        customFields: [...state.customFields, action.payload],
+      };
+      break;
+    case 'REMOVE_CUSTOM_FIELD':
+      newState = {
+        ...state,
+        customFields: state.customFields.filter(
+          field => field.name !== action.payload
+        ),
+        tasks: state.tasks.map(task => {
+          const cloneTask = { ...task };
+          delete cloneTask[action.payload];
+          return cloneTask;
+        }),
       };
       break;
     default:
@@ -78,8 +110,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const savedState = localStorage.getItem('taskState');
     if (savedState) {
-      const { tasks } = JSON.parse(savedState);
-      dispatch({ type: 'LOAD_TASKS', payload: tasks });
+      const { tasks, customFields } = JSON.parse(savedState);
+      dispatch({
+        type: 'LOAD_STATE',
+        payload: { tasks: tasks || [], customFields: customFields || [] },
+      });
     }
     setIsInitialized(true);
   }, []);
@@ -92,8 +127,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('taskState');
       return;
     }
-    localStorage.setItem('taskState', JSON.stringify({ tasks: state.tasks }));
-  }, [state.tasks, isInitialized]);
+    localStorage.setItem(
+      'taskState',
+      JSON.stringify({ tasks: state.tasks, customFields: state.customFields })
+    );
+  }, [state.tasks, state.customFields, isInitialized]);
 
   return (
     <TaskContext.Provider value={{ state, dispatch }}>

@@ -35,6 +35,18 @@ export function useSortedTasks(
         ];
         aValue = statusOrder.indexOf(a[field]);
         bValue = statusOrder.indexOf(b[field]);
+      } else if (typeof aValue === "boolean" && typeof bValue === "boolean") {
+        return direction === "asc"
+          ? aValue === bValue
+            ? 0
+            : aValue
+              ? -1
+              : 1
+          : aValue === bValue
+            ? 0
+            : aValue
+              ? 1
+              : -1
       }
 
       if (aValue < bValue) return direction === 'asc' ? -1 : 1;

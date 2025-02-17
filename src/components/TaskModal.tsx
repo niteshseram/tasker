@@ -18,6 +18,7 @@ import {
 import type { Priority, Status, Task } from '@/types';
 import { PRIORITY, STATUS } from '@/constants';
 import { useTaskContext } from '@/context/TaskContext';
+import { Checkbox } from './ui/checkbox';
 
 type Props = Readonly<{
   open: boolean;
@@ -26,7 +27,7 @@ type Props = Readonly<{
 }>;
 
 export function TaskModal({ open, onClose, task }: Props) {
-  const { dispatch } = useTaskContext();
+  const { dispatch, state } = useTaskContext();
   const statusOptions: Status[] = ['not_started', 'in_progress', 'completed'];
   const priorityOptions: Priority[] = [
     'none',
@@ -140,6 +141,42 @@ export function TaskModal({ open, onClose, task }: Props) {
                 )}
               />
             </div>
+          </div>
+
+          <div className="mt-2 space-y-4">
+            {state.customFields.map(field => (
+              <div key={field.name}>
+                {field.type === 'text' && (
+                  <Input {...register(field.name)} placeholder={field.name} />
+                )}
+                {field.type === 'number' && (
+                  <Input
+                    type="number"
+                    {...register(field.name, { valueAsNumber: true })}
+                    placeholder={field.name}
+                  />
+                )}
+                {field.type === 'checkbox' && (
+                  <div className="flex items-center">
+                    <Controller
+                      name={field.name}
+                      control={control}
+                      defaultValue={false}
+                      render={({ field: { onChange, value } }) => (
+                        <Checkbox
+                          id={field.name}
+                          checked={value}
+                          onCheckedChange={checked => onChange(checked)}
+                        />
+                      )}
+                    />
+                    <label htmlFor={field.name} className="ml-2">
+                      {field.name}
+                    </label>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
 
           <DialogFooter>

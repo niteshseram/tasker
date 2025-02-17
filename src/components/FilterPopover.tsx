@@ -4,9 +4,12 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Priority, Status } from '@/types';
+import { Input } from '@/components/ui/input';
+import { Priority, Status, CustomField } from '@/types';
 import { PRIORITY, STATUS } from '@/constants';
 import { Button } from './ui/button';
+
+type CustomFieldFilter = Record<string, string | number | boolean>;
 
 type Props = Readonly<{
   trigger: React.ReactNode;
@@ -14,6 +17,9 @@ type Props = Readonly<{
   setFilterPriorities: (priorities: Priority[]) => void;
   filterStatuses: Status[];
   setFilterStatuses: (statuses: Status[]) => void;
+  customFieldFilters: CustomFieldFilter;
+  setCustomFieldFilters: (filters: CustomFieldFilter) => void;
+  customFields: CustomField[];
 }>;
 
 export function FilterPopover({
@@ -22,6 +28,9 @@ export function FilterPopover({
   setFilterPriorities,
   filterStatuses,
   setFilterStatuses,
+  customFieldFilters,
+  setCustomFieldFilters,
+  customFields,
 }: Props) {
   const statusOptions: Status[] = ['not_started', 'in_progress', 'completed'];
   const priorityOptions: Priority[] = [
@@ -51,6 +60,7 @@ export function FilterPopover({
   function onClear() {
     setFilterPriorities([]);
     setFilterStatuses([]);
+    setCustomFieldFilters({});
   }
 
   return (
@@ -65,6 +75,7 @@ export function FilterPopover({
             </Button>
           </header>
           <div className="flex flex-col gap-4">
+            {/* Status Filters */}
             <fieldset>
               <legend className="mb-2 font-medium">Status</legend>
               <div className="flex flex-wrap gap-y-1.5 gap-x-3">
@@ -82,6 +93,7 @@ export function FilterPopover({
                 ))}
               </div>
             </fieldset>
+            {/* Priority Filters */}
             <fieldset>
               <legend className="mb-2 font-medium">Priority</legend>
               <div className="flex flex-wrap gap-y-1.5 gap-x-3">
@@ -101,6 +113,54 @@ export function FilterPopover({
                 ))}
               </div>
             </fieldset>
+
+            {/* Custom Field Filters */}
+            {customFields.length > 0 && (
+              <div className="flex flex-col gap-4">
+                {customFields.map(field => (
+                  <div key={field.name} className="flex flex-col">
+                    <label className="font-medium mb-2" htmlFor={field.name}>
+                      {field.name}
+                    </label>
+                    {(field.type === 'text' || field.type === 'number') && (
+                      <Input
+                        id={field.name}
+                        type={field.type === 'text' ? 'text' : 'number'}
+                        placeholder={`Filter by ${field.name}`}
+                        value={
+                          customFieldFilters[field.name] !== undefined
+                            ? String(customFieldFilters[field.name])
+                            : ''
+                        }
+                        onChange={e =>
+                          setCustomFieldFilters({
+                            ...customFieldFilters,
+                            [field.name]: e.target.value,
+                          })
+                        }
+                      />
+                    )}
+                    {field.type === 'checkbox' && (
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`custom-${field.name}`}
+                          checked={!!customFieldFilters[field.name]}
+                          onCheckedChange={checked =>
+                            setCustomFieldFilters({
+                              ...customFieldFilters,
+                              [field.name]: checked,
+                            })
+                          }
+                        />
+                        <label htmlFor={`custom-${field.name}`}>
+                          {field.name}
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </PopoverContent>

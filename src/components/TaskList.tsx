@@ -11,8 +11,8 @@ import {
   RiFilterLine,
 } from 'react-icons/ri';
 
-import { PRIORITY, STATUS } from '../constants';
-import type { Task } from '../types';
+import { PRIORITY, STATUS } from '@/constants';
+import type { CustomField, Task } from '@/types';
 import TaskActions from './TaskActions';
 import { TaskModal } from './TaskModal';
 import { useTaskContext } from '@/context/TaskContext';
@@ -29,9 +29,10 @@ interface TaskRowProps {
   task: Task;
   onEdit: (task: Task) => void;
   onDelete: (task: Task) => void;
+  customFields: CustomField[];
 }
 
-function TaskRow({ task, onEdit, onDelete }: TaskRowProps) {
+function TaskRow({ task, customFields, onEdit, onDelete }: TaskRowProps) {
   return (
     <tr className="border-b border-gray-200 text-black">
       <th scope="row" className="px-6 py-4 font-medium whitespace-nowrap">
@@ -39,6 +40,13 @@ function TaskRow({ task, onEdit, onDelete }: TaskRowProps) {
       </th>
       <td className="px-6 py-4">{STATUS[task.status]}</td>
       <td className="px-6 py-4">{PRIORITY[task.priority]}</td>
+      {customFields.map(field => (
+        <td className="px-6 py-4">
+          {task[field.name as keyof Task] === ''
+            ? '-'
+            : String(task[field.name as keyof Task])}
+        </td>
+      ))}
       <td className="px-6 py-4 text-right">
         <TaskActions task={task} onDelete={onDelete} onEdit={onEdit} />
       </td>
@@ -75,7 +83,7 @@ function TableHeader({
 
 export default function TaskList() {
   const {
-    state: { tasks },
+    state: { tasks, customFields },
     dispatch,
   } = useTaskContext();
 
@@ -117,6 +125,8 @@ export default function TaskList() {
     filterStatuses,
     setFilterStatuses,
     filteredTasks,
+    customFieldFilters,
+    setCustomFieldFilters,
   } = useTaskFilters(tasks);
 
   const sortedTasks = useSortedTasks(filteredTasks, sort);
@@ -158,6 +168,9 @@ export default function TaskList() {
             setFilterPriorities={setFilterPriorities}
             filterStatuses={filterStatuses}
             setFilterStatuses={setFilterStatuses}
+            customFields={customFields}
+            customFieldFilters={customFieldFilters}
+            setCustomFieldFilters={setCustomFieldFilters}
           />
         </div>
       </div>
@@ -167,6 +180,9 @@ export default function TaskList() {
             <col />
             <col style={{ width: '8rem' }} />
             <col style={{ width: '8rem' }} />
+            {customFields.map(() => (
+              <col style={{ width: '8rem' }} />
+            ))}
             <col style={{ width: '5rem' }} />
           </colgroup>
           <thead className="text-gray-700 bg-gray-200 sticky top-0 z-10">
@@ -219,6 +235,26 @@ export default function TaskList() {
                   }
                 />
               </th>
+              {customFields
+                .map(field => field.name)
+                .map(field => (
+                  <th scope="col" className="px-6 py-3">
+                    <TableHeader
+                      label={field}
+                      isSorted={sort.field === field}
+                      sortDirection={sort.direction}
+                      onClick={() =>
+                        setSort({
+                          field,
+                          direction:
+                            sort.field === field && sort.direction === 'asc'
+                              ? 'desc'
+                              : 'asc',
+                        })
+                      }
+                    />
+                  </th>
+                ))}
               <th scope="col" className="px-6 py-3">
                 <span className="sr-only">Action</span>
               </th>
@@ -230,6 +266,7 @@ export default function TaskList() {
                 <TaskRow
                   key={task.id}
                   task={task}
+                  customFields={customFields}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                 />
@@ -245,7 +282,7 @@ export default function TaskList() {
         </table>
       </div>
 
-      {tasks.length > pageSize ? (
+      {sortedTasks.length > pageSize ? (
         <div className="flex items-center gap-1.5 sticky bottom-0 pt-16">
           <Button
             size="sm"

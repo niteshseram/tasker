@@ -32,11 +32,19 @@ type TaskFormData = {
 type Props = Readonly<{
   open: boolean;
   onClose: () => void;
-  task?: Task;
+  task?: Task | null;
+  isBulk?: boolean;
+  onBulkEdit?: (data: Partial<Task>) => void;
 }>;
 
-export function TaskModal({ open, onClose, task }: Props) {
-  const { dispatch, state } = useTaskContext();
+export default function TaskModal({
+  open,
+  onClose,
+  task,
+  isBulk,
+  onBulkEdit,
+}: Props) {
+  const { state, dispatch } = useTaskContext();
   const statusOptions: Status[] = ['not_started', 'in_progress', 'completed'];
   const priorityOptions: Priority[] = [
     'none',
@@ -79,42 +87,50 @@ export function TaskModal({ open, onClose, task }: Props) {
     defaultValues: createDefaultValues(),
   });
 
-  const onSubmit = (data: Task) => {
-    if (task) {
-      dispatch({ type: 'UPDATE_TASK', payload: { id: task.id, task: data } });
+  function onSubmit(data: Task) {
+    if (isBulk) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { title, ...taskWithoutTitle } = data;
+      onBulkEdit?.(taskWithoutTitle);
+    } else if (data) {
+      dispatch({ type: 'UPDATE_TASK', payload: { id: data.id, task: data } });
     } else {
       dispatch({ type: 'ADD_TASK', payload: data });
     }
     onClose();
-  };
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{task ? 'Edit Task' : 'New Task'}</DialogTitle>
+          <DialogTitle>
+            {isBulk ? 'Bulk edit tasks' : task ? 'Edit Task' : 'New Task'}
+          </DialogTitle>
         </DialogHeader>
         <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
           {/* Task Title */}
-          <div>
-            <label
-              htmlFor="task-title"
-              className="block text-sm font-medium text-gray-700">
-              Title
-            </label>
-            <Input
-              {...register('title', { required: 'Title is required' })}
-              required
-              id="task-title"
-              placeholder="Enter task title"
-              className="mt-1"
-            />
-            {errors.title && (
-              <span className="text-red-500 text-sm">
-                {errors.title.message}
-              </span>
-            )}
-          </div>
+          {!isBulk && (
+            <div>
+              <label
+                htmlFor="task-title"
+                className="block text-sm font-medium text-gray-700">
+                Title
+              </label>
+              <Input
+                {...register('title', { required: 'Title is required' })}
+                required
+                id="task-title"
+                placeholder="Enter task title"
+                className="mt-1"
+              />
+              {errors.title && (
+                <span className="text-red-500 text-sm">
+                  {errors.title.message}
+                </span>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-4">
             {/* Task Status */}

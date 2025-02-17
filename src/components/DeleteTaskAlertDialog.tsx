@@ -22,7 +22,8 @@ export function DeleteTaskAlertDialog({ open, onClose, onConfirm }: Props) {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete the task.
+            This action cannot be undone. This will permanently delete the
+            task(s).
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

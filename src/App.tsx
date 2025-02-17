@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import Navbar from '@/components/Navbar';
 import TaskList from '@/components/TaskList';
-import { TaskModal } from '@/components/TaskModal';
+import TaskModal from '@/components/TaskModal';
 import { Button } from '@/components/ui/button';
 import { CustomFieldsModal } from './components/CustomFieldsModal';
 

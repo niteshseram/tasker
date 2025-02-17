@@ -24,7 +24,13 @@ type Action =
   | { type: 'ADD_CUSTOM_FIELD'; payload: CustomField }
   | { type: 'REMOVE_CUSTOM_FIELD'; payload: string }
   | { type: 'UNDO' }
-  | { type: 'REDO' };
+  | { type: 'REDO' }
+  | { type: 'BULK_DELETE_TASKS'; payload: number[] }
+  | { type: 'BULK_RESTORE_TASKS'; payload: Task[] }
+  | {
+      type: 'BULK_UPDATE_TASKS';
+      payload: { updates: Record<number, Partial<Task>> };
+    };
 
 interface State {
   tasks: Task[];
@@ -37,7 +43,6 @@ interface HistoryState {
   future: Delta[];
 }
 
-// Configuration
 const MAX_HISTORY_LENGTH = 50; // Limit history to last 50 operations
 
 const initialState: State = {
@@ -101,6 +106,29 @@ function createInverseAction(
       };
     }
 
+    case 'BULK_UPDATE_TASKS': {
+      const { updates } = action.payload;
+      const ids = Object.keys(updates).map(Number);
+      const updatedTasks = state.tasks.filter(task => ids.includes(task.id));
+      if (updatedTasks.length === 0) return null;
+
+      return {
+        actionType: 'BULK_UPDATE_TASKS',
+        payload: { updates },
+        inverse: () => {
+          return {
+            type: 'BULK_UPDATE_TASKS',
+            payload: {
+              updates: updatedTasks.reduce((acc, task) => {
+                acc[task.id] = task;
+                return acc;
+              }, {} as Record<number, Task>),
+            },
+          };
+        },
+      };
+    }
+
     case 'DELETE_TASK': {
       const taskToDelete = state.tasks.find(t => t.id === action.payload);
       if (!taskToDelete) return null;
@@ -109,6 +137,35 @@ function createInverseAction(
         actionType: 'DELETE_TASK',
         payload: action.payload,
         inverse: () => ({ type: 'ADD_TASK', payload: taskToDelete }),
+      };
+    }
+
+    case 'BULK_DELETE_TASKS': {
+      // Collect all tasks that will be deleted
+      const tasksToDelete = state.tasks.filter(t =>
+        action.payload.includes(t.id)
+      );
+
+      if (tasksToDelete.length === 0) return null;
+
+      return {
+        actionType: 'BULK_DELETE_TASKS',
+        payload: tasksToDelete.map(task => task.id),
+        inverse: () => ({
+          type: 'BULK_RESTORE_TASKS',
+          payload: tasksToDelete,
+        }),
+      };
+    }
+
+    case 'BULK_RESTORE_TASKS': {
+      return {
+        actionType: 'BULK_RESTORE_TASKS',
+        payload: action.payload,
+        inverse: () => ({
+          type: 'BULK_DELETE_TASKS',
+          payload: action.payload.map(task => task.id),
+        }),
       };
     }
 
@@ -242,10 +299,34 @@ function applyAction(state: State, action: Action): State {
         ),
       };
 
+    case 'BULK_UPDATE_TASKS': {
+      const { updates } = action.payload;
+      const ids = Object.keys(updates).map(Number);
+      const updatedTasks = state.tasks.map(task => {
+        if (ids.includes(task.id)) {
+          return { ...task, ...updates[task.id] };
+        }
+        return task;
+      });
+      return { ...state, tasks: updatedTasks };
+    }
+
     case 'DELETE_TASK':
       return {
         ...state,
         tasks: state.tasks.filter(task => task.id !== action.payload),
+      };
+
+    case 'BULK_DELETE_TASKS':
+      return {
+        ...state,
+        tasks: state.tasks.filter(task => !action.payload.includes(task.id)),
+      };
+
+    case 'BULK_RESTORE_TASKS':
+      return {
+        ...state,
+        tasks: [...action.payload, ...state.tasks],
       };
 
     case 'ADD_CUSTOM_FIELD': {

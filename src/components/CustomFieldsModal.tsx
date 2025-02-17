@@ -46,10 +46,8 @@ export function CustomFieldsModal({ open, onClose }: Props) {
 
   const onSubmit = (data: CustomField) => {
     const { name, type } = data;
-    if (name && !state.customFields.some(field => field.name === name)) {
-      dispatch({ type: 'ADD_CUSTOM_FIELD', payload: { name, type } });
-      reset();
-    }
+    dispatch({ type: 'ADD_CUSTOM_FIELD', payload: { name, type } });
+    reset();
   };
 
   return (
@@ -61,18 +59,27 @@ export function CustomFieldsModal({ open, onClose }: Props) {
         <div className="space-y-4">
           <form className="flex space-x-2" onSubmit={handleSubmit(onSubmit)}>
             {/* Field name */}
-            <Input
-              {...register('name', { required: 'Name is required' })}
-              required
-              id="task-title"
-              placeholder="Enter field name"
-              className="w-full"
-            />
-            {errors.name && (
-              <span className="text-red-500 text-sm">
-                {errors.name.message}
-              </span>
-            )}
+            <div className="w-full">
+              <Input
+                {...register('name', {
+                  required: 'Name is required',
+                  // Check if field name already exists
+                  validate: value =>
+                    !state.customFields.some(
+                      field => field.name.toLowerCase() === value.toLowerCase()
+                    ) || 'Field name already exists',
+                })}
+                required
+                id="task-title"
+                placeholder="Enter field name"
+                className="w-full"
+              />
+              {errors.name && (
+                <span className="text-red-500 text-sm mt-1">
+                  {errors.name.message}
+                </span>
+              )}
+            </div>
             <Controller
               name="type"
               control={control}

@@ -70,7 +70,7 @@ function taskReducer(state: State, action: Action): State {
               : '';
           return cloneTask;
         }),
-        customFields: [...state.customFields, action.payload],
+        customFields: [action.payload, ...state.customFields],
       };
       break;
     case 'REMOVE_CUSTOM_FIELD':

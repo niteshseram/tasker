@@ -33,7 +33,7 @@ interface TaskRowProps {
 
 function TaskRow({ task, onEdit, onDelete }: TaskRowProps) {
   return (
-    <tr className="border border-gray-200 text-black">
+    <tr className="border-b border-gray-200 text-black">
       <th scope="row" className="px-6 py-4 font-medium whitespace-nowrap">
         {task.title}
       </th>
@@ -135,7 +135,7 @@ export default function TaskList() {
   const filterCount = filterPriorities.length + filterStatuses.length;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 h-full">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Input
           className="max-w-md"
@@ -161,7 +161,7 @@ export default function TaskList() {
           />
         </div>
       </div>
-      <div className="overflow-x-auto sm:rounded-lg">
+      <div className="overflow-x-auto sm:rounded-lg overflow-auto border border-gray-200">
         <table className="w-full text-sm text-left rtl:text-right text-gray-400">
           <colgroup>
             <col />
@@ -246,7 +246,7 @@ export default function TaskList() {
       </div>
 
       {tasks.length > pageSize ? (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 sticky bottom-0 pt-16">
           <Button
             size="sm"
             variant="outline"

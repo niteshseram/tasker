@@ -35,6 +35,7 @@ type Props = Readonly<{
   task?: Task | null;
   isBulk?: boolean;
   onBulkEdit?: (data: Partial<Task>) => void;
+  defaultValues?: Partial<Task>;
 }>;
 
 export default function TaskModal({
@@ -43,6 +44,7 @@ export default function TaskModal({
   task,
   isBulk,
   onBulkEdit,
+  defaultValues,
 }: Props) {
   const { state, dispatch } = useTaskContext();
   const statusOptions: Status[] = ['not_started', 'in_progress', 'completed'];
@@ -50,10 +52,10 @@ export default function TaskModal({
 
   // Create default values for all fields, including custom fields
   function createDefaultValues(): TaskFormData {
-    const defaultValues: TaskFormData = {
-      title: task?.title || '',
-      priority: task?.priority || 'low',
-      status: task?.status || 'not_started',
+    const values: TaskFormData = {
+      title: task?.title || defaultValues?.title || '',
+      priority: task?.priority || defaultValues?.priority || 'low',
+      status: task?.status || defaultValues?.status || 'not_started',
       ...(task?.id !== undefined && { id: task.id }),
     };
 
@@ -61,15 +63,15 @@ export default function TaskModal({
     state.customFields.forEach(field => {
       // Initialize with appropriate defaults based on field type
       if (field.type === 'checkbox') {
-        defaultValues[field.name] = task?.[field.name] || false;
+        values[field.name] = task?.[field.name] || false;
       } else if (field.type === 'number') {
-        defaultValues[field.name] = task?.[field.name] || 0;
+        values[field.name] = task?.[field.name] || 0;
       } else {
-        defaultValues[field.name] = task?.[field.name] || '';
+        values[field.name] = task?.[field.name] || '';
       }
     });
 
-    return defaultValues;
+    return values;
   }
 
   const {
@@ -86,8 +88,8 @@ export default function TaskModal({
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { title, ...taskWithoutTitle } = data;
       onBulkEdit?.(taskWithoutTitle);
-    } else if (data) {
-      dispatch({ type: 'UPDATE_TASK', payload: { id: data.id, task: data } });
+    } else if (task) {
+      dispatch({ type: 'UPDATE_TASK', payload: { id: task.id, task: data } });
     } else {
       dispatch({ type: 'ADD_TASK', payload: data });
     }

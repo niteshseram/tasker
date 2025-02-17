@@ -27,6 +27,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import TaskToolbar from '../TaskToolbar';
 import { useTaskFilters } from '../hooks/ustFilterTasks';
+import TaskModal from '../TaskModal';
 
 const priorityColumns: Priority[] = ['low', 'medium', 'high'];
 
@@ -104,12 +105,14 @@ function Column({
   handleDelete,
   handleEdit,
   tasks,
+  onCreateTask,
 }: {
   priority: Priority;
   taskIds: number[];
   handleDelete: (task: Task) => void;
   handleEdit: (task: Task) => void;
   tasks: Task[];
+  onCreateTask: () => void;
 }) {
   const columnTasks = taskIds
     .map(id => tasks.find(task => task.id === id))
@@ -117,8 +120,13 @@ function Column({
 
   return (
     <div className="bg-gray-100 p-4 rounded-lg min-w-[300px] h-full w-full flex-1 overflow-hidden">
-      <h3 className="font-bold mb-4">{PRIORITY[priority]}</h3>
-      <div className="overflow-y-auto h-full flex-1 pb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-bold">{PRIORITY[priority]}</h3>
+        <Button variant="default" size="sm" onClick={onCreateTask}>
+          Add
+        </Button>
+      </div>
+      <div className="overflow-y-auto h-full flex-1 pb-10">
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
           {columnTasks.map(task => (
             <SortableTaskCard
@@ -142,6 +150,13 @@ type Props = Readonly<{
 export default function KanbanBoard({ handleDelete, handleEdit }: Props) {
   const { state, dispatch } = useTaskContext();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [createTask, setCreateTask] = useState<{
+    priority: Priority;
+    open: boolean;
+  }>({
+    priority: 'low',
+    open: false,
+  });
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -260,6 +275,7 @@ export default function KanbanBoard({ handleDelete, handleEdit }: Props) {
               handleEdit={handleEdit}
               taskIds={kanbanOrder[priority] || []}
               tasks={filteredTasks}
+              onCreateTask={() => setCreateTask({ priority, open: true })}
             />
           ))}
         </div>
@@ -267,6 +283,15 @@ export default function KanbanBoard({ handleDelete, handleEdit }: Props) {
           {activeTask && <TaskCard task={activeTask} />}
         </DragOverlay>
       </DndContext>
+      {createTask.open && (
+        <TaskModal
+          defaultValues={{
+            priority: createTask.priority,
+          }}
+          open={createTask.open}
+          onClose={() => setCreateTask({ ...createTask, open: false })}
+        />
+      )}
     </div>
   );
 }

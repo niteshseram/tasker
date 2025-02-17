@@ -294,10 +294,10 @@ function taskReducer(state: HistoryState, action: Action): HistoryState {
 function initializeKanbanOrder(tasks: Task[]): KanbanOrder {
   const order: KanbanOrder = {};
   tasks.forEach(task => {
-    if (!order[task.status]) {
-      order[task.status] = [];
+    if (!order[task.priority]) {
+      order[task.priority] = [];
     }
-    order[task.status].push(task.id);
+    order[task.priority].push(task.id);
   });
   return order;
 }
@@ -316,11 +316,13 @@ function applyAction(state: State, action: Action): State {
 
       // Update the kanban order to include the new task
       const updatedKanbanOrder = { ...state.kanbanOrder };
-      if (!updatedKanbanOrder[task.status]) {
-        updatedKanbanOrder[task.status] = [];
+      if (!updatedKanbanOrder[task.priority]) {
+        updatedKanbanOrder[task.priority] = [];
       }
-      updatedKanbanOrder[task.status].unshift(task.id);
-
+      updatedKanbanOrder[task.priority] = [
+        task.id,
+        ...updatedKanbanOrder[task.priority],
+      ];
       return {
         ...state,
         tasks: [task, ...state.tasks],
@@ -336,19 +338,22 @@ function applyAction(state: State, action: Action): State {
       const oldTask = state.tasks[taskIndex];
       const newTask = { ...oldTask, ...updatedFields };
 
-      // Handle status change by updating kanban order
+      // Handle priority change by updating kanban order
       const updatedKanbanOrder = { ...state.kanbanOrder };
-      if (updatedFields.status && oldTask.status !== updatedFields.status) {
-        // Remove from old status
-        updatedKanbanOrder[oldTask.status] = (
-          updatedKanbanOrder[oldTask.status] || []
+      if (
+        updatedFields.priority &&
+        oldTask.priority !== updatedFields.priority
+      ) {
+        // Remove from old priority
+        updatedKanbanOrder[oldTask.priority] = (
+          updatedKanbanOrder[oldTask.priority] || []
         ).filter(taskId => taskId !== id);
 
-        // Add to new status
-        if (!updatedKanbanOrder[updatedFields.status]) {
-          updatedKanbanOrder[updatedFields.status] = [];
+        // Add to new priority
+        if (!updatedKanbanOrder[updatedFields.priority]) {
+          updatedKanbanOrder[updatedFields.priority] = [];
         }
-        updatedKanbanOrder[updatedFields.status].push(id);
+        updatedKanbanOrder[updatedFields.priority].push(id);
       }
 
       return {
@@ -368,23 +373,23 @@ function applyAction(state: State, action: Action): State {
         return task;
       });
 
-      // Update kanban order for any status changes
+      // Update kanban order for any priority changes
       const updatedKanbanOrder = { ...state.kanbanOrder };
       ids.forEach(id => {
         const oldTask = state.tasks.find(t => t.id === id);
-        const newStatus = updates[id]?.status;
+        const newPriority = updates[id]?.priority;
 
-        if (oldTask && newStatus && oldTask.status !== newStatus) {
-          // Remove from old status
-          updatedKanbanOrder[oldTask.status] = (
-            updatedKanbanOrder[oldTask.status] || []
+        if (oldTask && newPriority && oldTask.priority !== newPriority) {
+          // Remove from old priority
+          updatedKanbanOrder[oldTask.priority] = (
+            updatedKanbanOrder[oldTask.priority] || []
           ).filter(taskId => taskId !== id);
 
-          // Add to new status
-          if (!updatedKanbanOrder[newStatus]) {
-            updatedKanbanOrder[newStatus] = [];
+          // Add to new priority
+          if (!updatedKanbanOrder[newPriority]) {
+            updatedKanbanOrder[newPriority] = [];
           }
-          updatedKanbanOrder[newStatus].push(id);
+          updatedKanbanOrder[newPriority].push(id);
         }
       });
 
@@ -403,8 +408,8 @@ function applyAction(state: State, action: Action): State {
 
       // Update kanban order
       const updatedKanbanOrder = { ...state.kanbanOrder };
-      Object.keys(updatedKanbanOrder).forEach(status => {
-        updatedKanbanOrder[status] = updatedKanbanOrder[status].filter(
+      Object.keys(updatedKanbanOrder).forEach(priority => {
+        updatedKanbanOrder[priority] = updatedKanbanOrder[priority].filter(
           id => id !== deletedTaskId
         );
       });
@@ -421,8 +426,8 @@ function applyAction(state: State, action: Action): State {
 
       // Update kanban order
       const updatedKanbanOrder = { ...state.kanbanOrder };
-      Object.keys(updatedKanbanOrder).forEach(status => {
-        updatedKanbanOrder[status] = updatedKanbanOrder[status].filter(
+      Object.keys(updatedKanbanOrder).forEach(priority => {
+        updatedKanbanOrder[priority] = updatedKanbanOrder[priority].filter(
           id => !taskIdsToDelete.includes(id)
         );
       });
@@ -440,10 +445,10 @@ function applyAction(state: State, action: Action): State {
       // Update kanban order
       const updatedKanbanOrder = { ...state.kanbanOrder };
       restoredTasks.forEach(task => {
-        if (!updatedKanbanOrder[task.status]) {
-          updatedKanbanOrder[task.status] = [];
+        if (!updatedKanbanOrder[task.priority]) {
+          updatedKanbanOrder[task.priority] = [];
         }
-        updatedKanbanOrder[task.status].push(task.id);
+        updatedKanbanOrder[task.priority].push(task.id);
       });
 
       return {

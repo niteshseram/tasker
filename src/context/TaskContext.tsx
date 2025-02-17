@@ -18,7 +18,7 @@ type Delta = {
 
 type Action =
   | { type: 'LOAD_STATE'; payload: State }
-  | { type: 'ADD_TASK'; payload: Task }
+  | { type: 'ADD_TASK'; payload: Task | { taskIndex: number; task: Task } }
   | { type: 'UPDATE_TASK'; payload: { id: number; task: Partial<Task> } }
   | { type: 'DELETE_TASK'; payload: number }
   | { type: 'ADD_CUSTOM_FIELD'; payload: CustomField }
@@ -71,13 +71,14 @@ function createInverseAction(
 ): Delta | null {
   switch (action.type) {
     case 'ADD_TASK': {
+      const task =
+        'taskIndex' in action.payload ? action.payload.task : action.payload;
       // Find the task we just added in the resulting state by comparing
       const addedTask = resultingState.tasks.find(
         t =>
-          t.id === action.payload.id ||
-          (action.payload.id === undefined &&
-            JSON.stringify(t) ===
-              JSON.stringify({ ...action.payload, id: t.id }))
+          t.id === task.id ||
+          (task.id === undefined &&
+            JSON.stringify(t) === JSON.stringify({ ...task, id: t.id }))
       );
 
       if (!addedTask) return null;
@@ -139,12 +140,18 @@ function createInverseAction(
 
     case 'DELETE_TASK': {
       const taskToDelete = state.tasks.find(t => t.id === action.payload);
+      const indexOfTaskToDelete = state.tasks.findIndex(
+        t => t.id === action.payload
+      );
       if (!taskToDelete) return null;
 
       return {
         actionType: 'DELETE_TASK',
         payload: action.payload,
-        inverse: () => ({ type: 'ADD_TASK', payload: taskToDelete }),
+        inverse: () => ({
+          type: 'ADD_TASK',
+          payload: { task: taskToDelete, taskIndex: indexOfTaskToDelete }, // Store the deleted task index to restore back when undoing
+        }),
       };
     }
 
@@ -309,23 +316,51 @@ function applyAction(state: State, action: Action): State {
       return action.payload;
 
     case 'ADD_TASK': {
-      const task = {
-        ...action.payload,
-        id: action.payload.id != null ? action.payload.id : Date.now(),
-      };
+      const task =
+        'taskIndex' in action.payload
+          ? {
+              ...action.payload.task,
+              id:
+                action.payload.task.id != null
+                  ? action.payload.task.id
+                  : Date.now(),
+            }
+          : {
+              ...action.payload,
+              id: action.payload.id != null ? action.payload.id : Date.now(),
+            };
 
       // Update the kanban order to include the new task
       const updatedKanbanOrder = { ...state.kanbanOrder };
       if (!updatedKanbanOrder[task.priority]) {
         updatedKanbanOrder[task.priority] = [];
       }
-      updatedKanbanOrder[task.priority] = [
-        task.id,
-        ...updatedKanbanOrder[task.priority],
-      ];
+
+      // Put the deleted task back to the original order
+      if ('taskIndex' in action.payload) {
+        const { taskIndex } = action.payload;
+        updatedKanbanOrder[task.priority] = [
+          ...updatedKanbanOrder[task.priority].slice(0, taskIndex),
+          task.id,
+          ...updatedKanbanOrder[task.priority].slice(taskIndex),
+        ];
+      } else {
+        updatedKanbanOrder[task.priority] = [
+          task.id,
+          ...updatedKanbanOrder[task.priority],
+        ];
+      }
       return {
         ...state,
-        tasks: [task, ...state.tasks],
+        tasks:
+          // Put the deleted task back to the original order
+          'taskIndex' in action.payload
+            ? [
+                ...state.tasks.slice(0, action.payload.taskIndex),
+                task,
+                ...state.tasks.slice(action.payload.taskIndex),
+              ]
+            : [task, ...state.tasks],
         kanbanOrder: updatedKanbanOrder,
       };
     }
